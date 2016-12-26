@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 
-data = pd.read_csv('data.csv')
+data = pd.read_csv('best20.csv')
 N, L = data.shape
 columns = list(data.columns)
 columns.remove('longitude')
