@@ -33,8 +33,8 @@ load("cities.rda")
 ## Background
 
 This project is based on a data challenge hosted by [Yelp](https://www.yelp.com/dataset_challenge). From this report you can see how I:  
-1. perform Natural Language Processing (NLP) to check on word frequency and determine the mood behind reviews,
-2. designed an algorithm to filter out the top 20 brunch spots in Pittsburgh,
+1. perform Natural Language Processing (NLP) to check on word frequency and determine the mood behind reviews,  
+2. designed an algorithm to filter out the top 20 brunch spots in Pittsburgh,  
 3. visualize the places using an interactive map.
 
 
@@ -79,40 +79,43 @@ names(pbreview)
 ```
 
 #### A Quick Look
-```{r, source = FALSE, message=FALSE}
+```{r, source = FALSE, message=FALSE, fig.width=12,fig.height=6}
 pb <- unique(pbreview[1:5])
 map <- get_googlemap("pittsburgh", zoom = 12, marker = data.frame(pb$longitude, pb$latitude), scale = 2, maptype = "roadmap")
 ggmap(map, extent = 'device')
 ```
+  
+Here's a map of all the brunch spots in Pittsburgh from the dataset. In this plot there are 61 pins on the map, and later on you'll see how I narrow it down to 20 and visualize it using an interactive map.  
 
-\n  Here's a map of all the brunch spots in Pittsburgh from the dataset. In this plot there are 61 pins on the map, and later on you'll see how I narrow it down to 20 and visualize it using an interactive map.  
-
-## Text Analysis 
+## NLP Text Analysis 
 #### Wordcloud on All 61 Brunch Places in Pitt
-```{r, message=FALSE}
-#textall <- (pbreview[pbreview$name %in% best20$name, ])$text
+```{r, message=FALSE, fig.width=12,fig.height=6}
 textall <- pbreview$text
+textall <- iconv(textall,to="utf-8-mac")
 docs <- Corpus(VectorSource(textall))
 docs <- tm_map(docs, stemDocument)   
 docs <- tm_map(docs, stripWhitespace)   
-docs <- tm_map(docs, PlainTextDocument)   
+docs <- tm_map(docs, PlainTextDocument)
+docs <- tm_map(docs, removeWords, c('just', 'like', 'dont', 'get', 'one', 'amp', 'the', stopwords('english')))
+
+docs <- Corpus(VectorSource(docs))
 
 dtm <- DocumentTermMatrix(docs)   
-docs <- tm_map(docs, removeWords, c('just', 'like', 'dont', 'get', 'one', 'amp', 'the', stopwords('english')))
+
 
 set.seed(19)
 wordcloud(docs, max.words = 60, colors = brewer.pal(5, "Dark2"))
 ```
 
 
-\n  The 61 brunch places have in total 4375 reviews each containing one paragraph of text. Here we're using wordcloud to break the info down and see what's in them.
+The 61 brunch places have in total 4375 reviews each containing one paragraph of text. Here we're using wordcloud to break the info down and see what's in them.
 As we can see, th most frequently mentioned words are very brunch-ish: pancake, egg, good, coffee, order, nice.. Nothing in particular, but provides an overview of the words in these reviews.
 
 
 #### Word Frequency (Ref [here](https://rstudio-pubs-static.s3.amazonaws.com/31867_8236987cf0a8444e962ccd2aec46d9c3.html))
 We see from the word cloud that these places are having the same range of words - not hard to imagine, these are all brunch places, what would you expect? But from our real life experience we also have this vague ideas that: this place has amazing egg benedict, that place is famous for its bacon hash. 
 
-####(taking one diner "Ritters Diner" as an example)
+#### Taking one diner "Ritters Diner" as an example
 ```{r}
 ritters <- pbreview[pbreview$name == "Ritters Diner", ]
 ```
@@ -130,12 +133,13 @@ head(wf)
 p <- ggplot(subset(wf, freq>25), aes(word, freq))    
 p + geom_bar(stat="identity") + theme(axis.text.x=element_text(angle=45, hjust=1))     
 ```
-\n  Again, not too much information because most restaurants will have the same words repeatedly in their review. But what if we get rid of the words these restaurants have in common and see what's left?
+  
+Again, not too much information because most restaurants will have the same words repeatedly in their review. But what if we get rid of the words these restaurants have in common and see what's left?
 
 #### Sentiment Analysis (Ref [here](https://www.r-bloggers.com/intro-to-text-analysis-with-r/))
 Sentiment analysis use naive bayes algorithm to predict whether a text vector is having a positive, neutrel or negative emotion in its text. Using sentiment analysis can help us determine the emotion within reviews of each brunch place, and see if it's compatible with its average rating on the Yelp database. 
 Taking "Ritters Diner" as an example, we throw in the reviews and here's what it returned.
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, fig.width=12,fig.height=6}
 textdata <- ritters$text
 class_emo = classify_emotion(textdata, algorithm="bayes", prior=1.0)
 emotion = class_emo[,7]
@@ -155,13 +159,14 @@ grid.arrange(p1, p2, ncol = 2, top = "Emotion and Polarity of Reviews for Diner 
 
 ## Trending
 #### The Trend in Number of Reviews
-```{r, message=FALSE, warning= FALSE}
+```{r, message=FALSE, warning= FALSE, fig.width=12,fig.height=6}
 par(mfrow = c(1,2))
-barplot(table(year(ritters$review.date)), xlab = "year", ylab = "number of reviews per year", main = "Ritters Diner") 
-barplot(table(year(pbreview$review.date)), xlab = "year", ylab = "number of reviews per year", main = "all brunch places in pitt")
+barplot(table(year(ritters$review.date)), xlab = "year", ylab = "number of reviews per year", col = "steelblue", cex.names=0.8, border = NA, main = "Ritters Diner") 
+barplot(table(year(pbreview$review.date)), xlab = "year", ylab = "number of reviews per year", col = "steelblue", cex.names=0.8, border = NA, main = "all brunch places in pitt")
 ```
 
-  As we can see, there's a upwarding trend in the number of Yelp reviews in individual diners and the industry overall, showing the growing popularity of this service. I took a look at the data of year 2016, and it shows that the sudden decrease is out of the incompleteness of the dataset - it only covers the first half of 2016. Again not surprising, it's still 2016 :) 
+  
+As we can see, there's a upwarding trend in the number of Yelp reviews in individual diners and the industry overall, showing the growing popularity of this service. I took a look at the data of year 2016, and it shows that the sudden decrease is out of the incompleteness of the dataset - it only covers the first half of 2016. Again not surprising, it's still 2016 :) 
 
 #### Recaluclate the Stars
 Yelp provided a star in their system, but how? Could we reproduce them by the information we have in hand? Here I'm calculating my own rating based on the reviews. The method here is to assign weight to each of the review and get a weighted mean of the stars that users rated. I'm giving more weight to the reviews who are getting more "vote useful likes" from other users.
@@ -195,7 +200,7 @@ head(data.frame(pb$avg.star, pb$star.calculated, pb$star.rounded))
 #### The Trend of Review Stars on Each Diner. Upwarding or Downwarding?
 Here we're fitting a fitting a mixed effect model to describe the trend of review. The different diners are random effects.
 
-```{r}
+```{r, warning=FALSE}
 pbreview$year <- year(pbreview$review.date)
 urs<-lmer(review.star~-1+(1|name)+year:name,data=pbreview)
 fsim<-FEsim(urs)
@@ -207,16 +212,23 @@ df$rowname <- gsub("year:name", "", df$rowname)
 pb.df <- merge(pb, df, by.x = "name", by.y = "rowname", all.x = TRUE)
 
 # best20 <- subset(pb, avg.star > 3 & trend > 2 | trend == "new!")
-best20.calculated <- subset(pb.df, star.calculated > 3.5 & fixef.urs. > 0.002)[,-2]
+pb.df$trend <- round(scale(pb.df$fixef.urs.),2)
+best20.calculated <- subset(pb.df, star.calculated > 3.4 & trend > 0)[,-2]
+best20.calculated <- best20.calculated[,c("name", "full.address", "longitude", "latitude", "star.rounded", "trend")]
 names(best20.calculated) <- c("Title", "Full Address", "longitude", "latitude", "Recommending Level", "Trend")
-write.csv(best20.calculated, file = "data.csv", row.names = FALSE)
+write.csv(best20.calculated, file = "best20.csv", row.names = FALSE)
 ```
 
-### The Interactive Map
-I'm using github to render a json file containing the data csv file that I just saved. 
-I'm presenting by inserting a javascript in this rmd that I'm writing.
-For converting csv to geojson, python script [here](https://github.com/SijiaLi/GoogleMapsStars/blob/master/b.py).
 
-<script src="https://embed.github.com/view/geojson/SijiaLi/GoogleMapsStars/master/data.geojson"></script>
 
-(The trend needs to be rescaled, the recommeding level needs to be rounded, that's all left for this project. If you're reading this Professor Masanao, these will be fixed before you know it.. Thanks for helping me with the lmer model. Happy holidays!)
+
+
+
+## The Interactive Map
+I'm using github to render a json file containing the data csv file that I just saved. GitHub has this nice feature that allows you to present a geojson file with a interactive map by inserting a javascript.   
+For converting csv to geojson, python script [here](https://github.com/SijiaLi/Yelp-Data-Challenge/blob/master/to-geojson.py).  
+
+
+<script src="https://embed.github.com/view/geojson/SijiaLi/Yelp-Data-Challenge/master/pittbest20.geojson"></script>  
+
+  
