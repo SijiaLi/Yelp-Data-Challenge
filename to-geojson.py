@@ -21,10 +21,10 @@ for i in range(N):
       }
     }
     one_feature['geometry']['coordinates'][0] = record.longitude
-    one_feature['geometry]['coordinates'][1] = record.latitude
+    one_feature['geometry']['coordinates'][1] = record.latitude
     for col in columns:
         one_feature['properties'][col] = record[col]
     json_data['features'].append(one_feature)
     
-with open('data.geojson', 'w') as outfile:
+with open('pittbest20.geojson', 'w') as outfile:
     json.dump(json_data, outfile)
