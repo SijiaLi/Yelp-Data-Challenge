@@ -29,7 +29,7 @@ load("pbreview.rds")
 load("business.rds")
 load("cities.rda")
 ```
-
+ 
 ## Background
 
 This project is based on a data challenge hosted by [Yelp](https://www.yelp.com/dataset_challenge). From this report you can see how I:  
